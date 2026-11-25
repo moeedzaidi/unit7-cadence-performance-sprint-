@@ -1,3 +1,15 @@
+-- Bonus Report C: Your Recent Listening
+-- BEFORE optimization
+-- Existing index used: idx_plays_user_played
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT p.played_at, s.title
+FROM plays p
+JOIN songs s ON s.song_id = p.track_id
+WHERE p.user_id = 1
+ORDER BY p.played_at DESC
+LIMIT 50;
+
 Limit  (cost=0.59..136.57 rows=50 width=154) (actual time=0.148..0.943 rows=50.00 loops=1)
   Buffers: shared hit=57 read=36
   ->  Nested Loop  (cost=0.59..60111.04 rows=22102 width=154) (actual time=0.147..0.937 rows=50.00 loops=1)
@@ -19,4 +31,3 @@ Planning:
   Buffers: shared hit=2 read=2
 Planning Time: 0.361 ms
 Execution Time: 0.984 ms
-
