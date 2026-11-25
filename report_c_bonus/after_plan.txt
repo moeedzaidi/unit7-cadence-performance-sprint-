@@ -1,1 +1,34 @@
+-- Bonus Report C: Your Recent Listening
+-- AFTER optimization
+-- Covering index: idx_plays_user_recent_cover
 
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT p.played_at, s.title
+FROM plays p
+JOIN songs s ON s.song_id = p.track_id
+WHERE p.user_id = 1
+ORDER BY p.played_at DESC
+LIMIT 50;
+
+Limit  (cost=0.59..3.72 rows=50 width=154) (actual time=0.118..0.186 rows=50.00 loops=1)
+  Buffers: shared hit=41 read=3
+  ->  Nested Loop  (cost=0.59..1196.23 rows=19101 width=154) (actual time=0.117..0.181 rows=50.00 loops=1)
+        Buffers: shared hit=41 read=3
+        ->  Index Only Scan using idx_plays_user_recent_cover on plays p  (cost=0.43..714.70 rows=19101 width=12) (actual time=0.095..0.102 rows=50.00 loops=1)
+              Index Cond: (user_id = 1)
+              Heap Fetches: 0
+              Index Searches: 1
+              Buffers: shared hit=1 read=3
+        ->  Memoize  (cost=0.16..0.18 rows=1 width=150) (actual time=0.001..0.001 rows=1.00 loops=50)
+              Cache Key: p.track_id
+              Cache Mode: logical
+              Hits: 30  Misses: 20  Evictions: 0  Overflows: 0  Memory Usage: 3kB
+              Buffers: shared hit=40
+              ->  Index Scan using songs_pkey on songs s  (cost=0.15..0.17 rows=1 width=150) (actual time=0.002..0.002 rows=1.00 loops=20)
+                    Index Cond: (song_id = p.track_id)
+                    Index Searches: 20
+                    Buffers: shared hit=40
+Planning:
+  Buffers: shared hit=14 read=1
+Planning Time: 0.502 ms
+Execution Time: 0.241 ms
