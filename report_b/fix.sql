@@ -1,4 +1,7 @@
-EXPLAIN (ANALYZE, BUFFERS)
+-- Report B: Top Listeners This Month
+-- Optimization: Remove DATE() from indexed column
+-- Use a timestamp range so PostgreSQL can use idx_plays_played_at.
+
 SELECT a.account_id, a.name,
        ROUND(SUM(p.play_duration_seconds) / 60.0, 1) AS minutes
 FROM accounts a
