@@ -1,1 +1,44 @@
+-- Report B: Top Listeners This Month
+-- BEFORE optimization
+-- Original query uses DATE() on the indexed column played_at
 
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT a.account_id, a.name,
+       ROUND(SUM(p.play_duration_seconds) / 60.0, 1) AS minutes
+FROM accounts a
+JOIN plays p ON p.user_id = a.account_id
+WHERE DATE(p.played_at) BETWEEN '2025-12-01' AND '2025-12-31'
+GROUP BY a.account_id, a.name
+ORDER BY minutes DESC NULLS LAST, a.account_id ASC
+LIMIT 20;
+
+Limit  (cost=51860.35..51860.40 rows=20 width=50) (actual time=427.482..427.602 rows=20.00 loops=1)
+  Buffers: shared hit=16129 read=7368
+  ->  Sort  (cost=51860.35..51897.86 rows=15001 width=50) (actual time=427.480..427.596 rows=20.00 loops=1)
+        Sort Key: (round(((sum(p.play_duration_seconds))::numeric / 60.0), 1)) DESC NULLS LAST, a.account_id
+        Sort Method: top-N heapsort  Memory: 27kB
+        Buffers: shared hit=16129 read=7368
+        ->  HashAggregate  (cost=51198.66..51461.18 rows=15001 width=50) (actual time=397.848..419.129 rows=41767.00 loops=1)
+              Group Key: a.account_id
+              Batches: 1  Memory Usage: 3353kB
+              Buffers: shared hit=16126 read=7368
+              ->  Gather  (cost=2632.27..51123.66 rows=15001 width=22) (actual time=16.764..345.275 rows=122930.00 loops=1)
+                    Workers Planned: 2
+                    Workers Launched: 2
+                    Buffers: shared hit=16126 read=7368
+                    ->  Hash Join  (cost=1632.27..48623.56 rows=6250 width=22) (actual time=16.336..197.114 rows=40976.67 loops=3)
+                          Hash Cond: (p.user_id = a.account_id)
+                          Buffers: shared hit=16126 read=7368
+                          ->  Parallel Seq Scan on plays p  (cost=0.00..46974.88 rows=6250 width=8) (actual time=0.128..155.123 rows=40976.67 loops=3)
+                                Filter: ((date(played_at) >= '2025-12-01'::date) AND (date(played_at) <= '2025-12-31'::date))
+                                Rows Removed by Filter: 959099
+                                Buffers: shared hit=15112 read=6861
+                          ->  Hash  (cost=1007.12..1007.12 rows=50012 width=18) (actual time=15.948..15.948 rows=50012.00 loops=3)
+                                Buckets: 65536  Batches: 1  Memory Usage: 2994kB
+                                Buffers: shared hit=1014 read=507
+                                ->  Seq Scan on accounts a  (cost=0.00..1007.12 rows=50012 width=18) (actual time=0.159..7.139 rows=50012.00 loops=3)
+                                      Buffers: shared hit=1014 read=507
+Planning:
+  Buffers: shared hit=33 read=11 dirtied=2
+Planning Time: 4.190 ms
+Execution Time: 428.974 ms
